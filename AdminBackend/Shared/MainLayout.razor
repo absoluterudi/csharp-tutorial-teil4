@@ -1,0 +1,95 @@
+﻿@inherits LayoutComponentBase
+@using Services
+@using BarBuddyBackend.Model
+@using Blazored.Toast.Configuration
+
+@inject Session Session
+@inject IToastService toastService
+
+
+@if (!Session.LoggedIn)
+{
+    <BarBuddyBackend.Pages.Login />
+}
+else
+{
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+
+        <div class="main">
+            <div class="top-row px-4">
+                <Button Color="Color.Primary" Clicked="LogoutClicked">Logout</Button>
+
+            </div>
+
+            <div class="content px-4">
+                @Body
+            </div>
+        </div>
+    </div>
+}
+
+<BlazoredToasts Position="ToastPosition.BottomRight"
+                Timeout="5" />
+
+@code{
+
+    private bool _initialized = false;
+
+    protected override void OnInitialized()
+    {
+        if (!_initialized)
+        {
+            base.OnInitialized();
+            Session.OnLoggedIn += LoggedIn;
+            Session.OnLoggedOut += LoggedOut;
+            Session.OnUserMessage += OnUserMessage;
+        }
+        _initialized = true;
+    }
+
+    private void LogoutClicked()
+    {
+        Session.Logout();
+    }
+
+    private async void LoggedIn(bool loggedIn)
+    {
+        if (loggedIn)
+        {
+            OnUserMessage("Sie wurden erfolgreich angemeldet.", UserMessageType.Success);
+        }
+        else
+        {
+            OnUserMessage("Sie konnten nicht angemeldet werden.", UserMessageType.Error);
+        }
+        StateHasChanged();
+    }
+
+    private async void LoggedOut(bool loggedIn)
+    {
+        StateHasChanged();
+    }
+
+    private async void OnUserMessage(string msg, UserMessageType type)
+    {
+        switch (type)
+        {
+            case UserMessageType.Info:
+                toastService.ShowInfo(msg);
+                break;
+            case UserMessageType.Warning:
+                toastService.ShowWarning(msg);
+                break;
+            case UserMessageType.Success:
+                toastService.ShowSuccess(msg);
+                break;
+            case UserMessageType.Error:
+                toastService.ShowError(msg);
+                break;
+        }
+
+    }
+}

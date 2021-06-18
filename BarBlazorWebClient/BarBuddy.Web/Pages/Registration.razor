@@ -1,0 +1,124 @@
+﻿@page "/registration"
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+
+@if (isLoading)
+{
+    <div class="modal-overlay">
+        <Chase />
+    </div>
+}
+
+<div id="registration-page" class="container">
+    <div id="error-compenent" class="@(string.IsNullOrWhiteSpace(error) ? "d-none" : null)">
+        @error
+    </div>
+
+    <h4 class="m-b-40">Hier kannst Du Deine Bar oder Dein Restaurant für die BarBuddy-App registrieren.</h4>
+
+    <EditForm Model="@Model" OnValidSubmit="@AddLocation">
+        <DataAnnotationsValidator />
+
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label>Vorname*</label>
+                    <InputText @bind-Value="@Model.FirstName" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>Nachname*</label>
+                    <InputText @bind-Value="@Model.LastName" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>Name der Bar/des Restaurants*</label>
+                    <InputText @bind-Value="@Model.BarName" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>Straße*</label>
+                    <InputText @bind-Value="@Model.Street" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>Adresszusatz</label>
+                    <InputText @bind-Value="@Model.AddressAddition" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>PLZ/Ort*</label>
+                    <div class="row">
+                        <div class="col-4">
+                            <InputText @bind-Value="@Model.PostalCode" class="form-control" maxlength="5" />
+                        </div>
+                        <div class="col-8">
+                            <InputText @bind-Value="@Model.City" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Telefon</label>
+                    <InputText @bind-Value="@Model.Phone" class="form-control" />
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="form-group">
+                    <label>E-Mail (Login)*</label>
+                    <InputText @bind-Value="@Model.Login" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>Passwort*</label>
+                    <InputText type="password" @bind-Value="@Model.Password" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>Passwort wiederholen*</label>
+                    <InputText type="password" @bind-Value="@Model.ConfirmPassword" class="form-control" />
+                </div>
+            </div>
+        </div>
+
+        <hr style="margin-bottom: 2rem" />
+
+        <button type="submit" class="btn btn-success btn-block text-uppercase">
+            Jetzt Registrieren
+        </button>
+    </EditForm>
+</div>
+
+@code{
+    NewBar Model { get; set; } = new NewBar();
+
+    bool isLoading { get; set; } = false;
+
+    string error { get; set; }
+
+    async Task AddLocation()
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            var response = await httpClient.PostAsJsonAsync($"api/location/CreateLocation", Model);
+            var content = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException(content);
+            }
+            navigationManager.NavigateTo($"/registration-success");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

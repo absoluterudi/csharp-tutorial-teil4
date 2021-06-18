@@ -1,0 +1,185 @@
+﻿@page "/location/{LocationId:long}"
+@inject NavigationManager navigationManager
+@inject ILocationService locationService
+@inject IReservationService reservationService
+
+<SpinLoader IsLoading="@isLoading">
+    <LoadingTemplate>
+        <div class="modal-overlay">
+            <Chase />
+            <div class="wait-action-descr">@waitMessage</div>
+        </div>
+    </LoadingTemplate>
+    <ContentTemplate>
+        <div id="page-location">
+            <NavMenu></NavMenu>
+
+            @if (selectedLocation != null && newReservation != null)
+            {
+                <EditForm Model="@newReservation" OnSubmit="@OnSubmit">
+                    <div class="main-content">
+                        <a href="/" class="btn-back">
+                            <i class="fas fa-chevron-circle-left"></i>
+                        </a>
+
+                        <h3>@selectedLocation.BarName</h3>
+
+                        <hr class="m-t-20 m-b-40" />
+
+                        <div class="m-b-40">
+                            <label>Wie viele Gäste seid Ihr?</label>
+                            <select class="form-control btn-block" @onchange="eventArgs => { OnCountPersonChange(eventArgs); }">
+                                <option value="0">- bitte wählen -</option>
+                                <option value="1">1 Person</option>
+                                <option value="2">2 Personen</option>
+                                <option value="3">3 Personen</option>
+                                <option value="4">4 Personen</option>
+                            </select>
+                        </div>
+
+                        @if (newReservation.CountPerson > 0)
+                        {
+                            if (locationSpots.Count > 0)
+                            {
+                                <div class="m-b-40">
+                                    <label>Bitte wähle Deinen Spot?</label>
+                                    <select class="form-control btn-block" @onchange="eventArgs => { OnSpotSelectionClicked(eventArgs); }">
+                                        <option value="0" selected="@(newReservation.LocationSpotId == 0)">- bitte wählen -</option>
+
+                                        @if (locationSpots.Any(o => o.AreaType == DTOs.Enums.AreaType.Outside))
+                                        {
+                                            <optgroup label="Außenbereich"></optgroup>
+                                            @foreach (var spot in locationSpots.Where(o => o.AreaType == DTOs.Enums.AreaType.Outside).OrderBy(o => o.Name).ToList())
+                                            {
+                                                <option value="@spot.Id" selected="@(newReservation.LocationSpotId == spot.Id)">@spot.Name (@spot.MaxPersons @(spot.MaxPersons == 1 ? " Person" : " Personen"))</option>
+                                            }
+                                        }
+
+                                        @if (locationSpots.Any(o => o.AreaType == DTOs.Enums.AreaType.Inside))
+                                        {
+                                            <optgroup label="Innenbereich"></optgroup>
+                                            @foreach (var spot in locationSpots.Where(o => o.AreaType == DTOs.Enums.AreaType.Inside).OrderBy(o => o.Name).ToList())
+                                            {
+                                                <option value="@spot.Id" selected="@(newReservation.LocationSpotId == spot.Id)">@spot.Name (@spot.MaxPersons @(spot.MaxPersons == 1 ? " Person" : " Personen"))</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            else
+                            {
+                                <div>
+                                    <div class="m-b-20"><i class="far fa-frown" style="font-size: 60px;"></i></div>
+                                    <h2>Leider wurden keine freien Spots für Dich gefunden.</h2>
+                                </div>
+                            }
+                        }
+
+                        @if (newReservation.LocationSpotId > 0)
+                        {
+                            <div class="m-b-20">
+                                * Deine Reservierung ist <strong>@AppSettings.ReservationTime min.</strong> gültig. *
+                            </div>
+                        }
+                    </div>
+
+                    <div class="fixed-bottom">
+                        <button type="submit" class="btn-secondary btn-block @(newReservation.LocationSpotId == 0 ? "disabled" : null)">
+                            Jetzt blockieren
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </ContentTemplate>
+</SpinLoader>
+
+@code{
+    [Parameter]
+    public long LocationId { get; set; }
+
+    BarResult selectedLocation { get; set; }
+
+    NewReservation newReservation { get; set; }
+
+    List<BarSpotResult> locationSpots { get; set; } = new List<BarSpotResult>();
+
+    bool isLoading { get; set; } = true;
+
+    string waitMessage { get; set; } = "Daten werden geladen...";
+
+    protected async override Task OnParametersSetAsync()
+    {
+        try
+        {
+            selectedLocation = await locationService.GetLocationWithSpotInfos(LocationId);
+
+            newReservation = new NewReservation();
+            newReservation.LocationId = selectedLocation.Id;
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    void OnCountPersonChange(ChangeEventArgs e)
+    {
+        if (e.Value == null)
+        {
+            return;
+        }
+
+        newReservation.LocationSpotId = 0;
+        newReservation.CountPerson = int.Parse(e.Value.ToString());
+
+        if (newReservation.CountPerson == 1)
+        {
+            locationSpots = selectedLocation.LocationSpots.Where(o => o.IsAvailable && o.SpotType == DTOs.Enums.SpotType.Single).ToList();
+        }
+
+        if (newReservation.CountPerson > 1)
+        {
+            locationSpots = selectedLocation.LocationSpots.Where(o => o.IsAvailable && o.SpotType == DTOs.Enums.SpotType.Table && o.MaxPersons >= newReservation.CountPerson).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    void OnSpotSelectionClicked(ChangeEventArgs e)
+    {
+        if (e.Value == null)
+        {
+            return;
+        }
+
+        newReservation.LocationSpotId = long.Parse(e.Value.ToString());
+        StateHasChanged();
+    }
+
+    async void OnSubmit(EditContext context)
+    {
+        try
+        {
+            waitMessage = "Reservierung wird übermittelt...";
+            isLoading = true;
+
+            var dt = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, 0);
+            newReservation.ReservedUntil = dt.AddMinutes(AppSettings.ReservationTime);
+
+            var result = await reservationService.CreateReservation(newReservation);
+            navigationManager.NavigateTo($"/reservation/{result.Id}");
+        }
+        catch (Exception ex)
+        {
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

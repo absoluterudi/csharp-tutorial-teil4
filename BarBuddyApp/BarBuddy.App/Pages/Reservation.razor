@@ -1,0 +1,139 @@
+﻿@page "/reservation/{ReservationId:long}"
+@inject NavigationManager navigationManager
+@inject IReservationService reservationService
+
+<SpinLoader IsLoading="@isLoading">
+    <LoadingTemplate>
+        <div class="modal-overlay">
+            <Chase />
+        </div>
+    </LoadingTemplate>
+    <ContentTemplate>
+        <div id="page-reservation">
+            <NavMenu></NavMenu>
+
+            <EditForm Model="@model">
+                <div class="main-content">
+                    <h3>@model.BarName</h3>
+
+                    <hr class="m-t-20 m-b-40" />
+                    
+                    <h2 class="m-b-10">
+                        * Reservierung erfolgreich *
+                    </h2>
+
+                    <div>Du hast <strong>@model.SpotName</strong> für @model.CountPerson @(model.CountPerson == 1 ? " Person" : " Personen") reserviert.</div>
+
+                    <div class="m-t-50 m-b-10">Verbleibende Zeit</div>
+                    <div class="counter">
+                        @counter.Minutes.ToString().PadLeft(2, '0'):@counter.Seconds.ToString().PadLeft(2, '0')
+                    </div>
+
+                    @if (counter.Ticks == 0)
+                    {
+                        <div class="time-expired-label m-t-40">
+                            Deine Reservierung ist abgelaufen.
+                        </div>
+                    }
+                </div>
+
+                <div class="fixed-bottom">
+                    @if (counter.Ticks == 0)
+                    {
+                        <a class="btn-secondary btn-block" href="/location/@model.LocationId">
+                            Erneut blockieren
+                        </a>
+
+                        <a class="btn-primary btn-block m-t-10" href="/">
+                            Neue Auswahl
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn-secondary btn-block" href="/scan/@model.Id">
+                            Einchecken
+                        </a>
+
+                        <button class="btn-primary btn-block m-t-10" @onclick="@(() => CancelReservation())">
+                            Reservierung stornieren
+                        </button>
+                    }
+                </div>
+            </EditForm>
+        </div>
+    </ContentTemplate>
+</SpinLoader>
+
+@code{
+    [Parameter]
+    public long ReservationId { get; set; }
+
+    ReservationResult model { get; set; }
+
+    bool isLoading { get; set; } = true;
+    bool Error { get; set; } = false;
+
+    private static System.Timers.Timer reservationTimer;
+    private TimeSpan counter;
+
+    protected async override Task OnParametersSetAsync()
+    {
+        try
+        {
+            isLoading = true;
+            model = await reservationService.GetReservationById(ReservationId);
+
+            if (model != null)
+            {
+                counter = model.RemainingTime;
+                reservationTimer = new System.Timers.Timer(1000);
+                if (counter.Ticks > 0)
+                {
+                    reservationTimer.Elapsed += CountdownReservationTimer;
+                    reservationTimer.Enabled = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = true; 
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    async Task CancelReservation()
+    {
+        try
+        {
+            isLoading = true;
+            await reservationService.CancelReservation(ReservationId);
+            navigationManager.NavigateTo($"/");
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    void CountdownReservationTimer(Object source, System.Timers.ElapsedEventArgs e)
+    {
+        if (counter.Ticks > 0)
+        {
+            counter = counter.Subtract(new TimeSpan(0, 0, 1));
+        }
+        else
+        {
+            reservationTimer.Elapsed -= CountdownReservationTimer;
+            reservationTimer.Enabled = false;
+            navigationManager.NavigateTo(navigationManager.Uri, true);
+        }
+        InvokeAsync(StateHasChanged);
+    }
+}

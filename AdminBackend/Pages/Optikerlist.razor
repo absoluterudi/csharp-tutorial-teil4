@@ -1,0 +1,245 @@
+﻿@page "/optikerlist"
+@using AutoMapper;
+@using Microsoft.Extensions.Configuration
+@using System.Text
+@using System.Globalization
+@using BarBuddy.Server.Entities;
+@using Services
+@using BarBuddy.DTOs
+@inject CompanyService CompanyService
+@inject CompanySpotService CompanySpotService
+@inject Session Session
+@inject IMapper Mapper
+<h1>Optiker</h1>
+
+<div class="row" style="height:50px;">
+    <div class="col-2" style="width:100px;">
+        @if (_dataLoading)
+        {
+            <Faso.Blazor.SpinKit.SpinKitCircle />
+        }
+        else
+        {
+            <Button Color="Color.Primary" Clicked="LoadRecords">Produkte laden</Button>
+        }
+    </div>
+</div>
+
+
+@*https://blazorise.com/docs/components/radio/*@
+
+<DataGrid TItem="OptikerResult"
+          Data="@Editrecords"
+          ShowPager="true"
+          PageSize="20"
+          EditMode="DataGridEditMode.Popup"
+          Sortable="true"
+          Filterable="true"
+          Editable="true"
+          RowInserted="@OnRowInserted"
+          RowRemoving="@OnRowRemoving"
+          RowUpdated="@OnRowUpdated"
+          UseInternalEditing="true"
+          FilterMethod="DataGridFilterMethod.Contains"
+          DetailRowTrigger="@((item)=>item.OptikerImages !=null && item.OptikerImages.Any() &&  item.Id == _selectedRecord?.Id)"
+          @bind-SelectedRow="@_selectedRecord">
+    <DataGridColumns>
+        <DataGridCommandColumn TItem="OptikerResult" />
+        @*<NewCommandTemplate>
+                <Button Color="Color.Success" Clicked="@context.Clicked">Edit</Button>
+            </NewCommandTemplate>*@
+        <DataGridColumn TItem="OptikerResult" Field="@nameof(OptikerResult.Id)" Caption="Id" Sortable="true" Filterable="true" />
+        <DataGridColumn TItem="OptikerResult" Field="@nameof(OptikerResult.CompanyName)" Caption="CompanyName" Editable="true" Sortable="true" Filterable="true" />
+        <DataGridColumn TItem="OptikerResult" Field="@nameof(OptikerResult.Street)" Caption="Street" Editable="true" Sortable="true" Filterable="true" /> />
+        <DataGridColumn TItem="OptikerResult" Field="@nameof(OptikerResult.AddressAddition)" Caption="AddressAddition" Editable="true" />
+        <DataGridColumn TItem="OptikerResult" Field="@nameof(OptikerResult.PostalCode)" Caption="PostalCode" Editable="true" />
+        <DataGridColumn TItem="OptikerResult" Field="@nameof(OptikerResult.City)" Caption="City" Editable="true" Sortable="true" Filterable="true" />
+    </DataGridColumns>
+    <DetailRowTemplate>
+        @{
+            var spots = (context as OptikerResult).OptikerImages;
+
+            <DataGrid TItem="OptikerImageResult"
+                      Data="spots"
+                      Sortable="false"
+                      Editable="true"
+                      EditMode="DataGridEditMode.Popup"
+                      RowInserted="@OnChildRowInserted"
+                      RowRemoving="@OnChildRowRemoving"
+                      RowUpdated="@OnChildRowUpdated"
+                      ShowCaptions="true">
+                @*<DataGridCommandColumn TItem="GlaukomImage" Context="childContext">
+                        <NewCommandTemplate>
+                            <Button Color="Color.Success" Clicked="@childContext.Clicked">New</Button>
+                        </NewCommandTemplate>
+                        <EditCommandTemplate>
+                            <Button Color="Color.Primary" Clicked="@childContext.Clicked">Edit</Button>
+                        </EditCommandTemplate>
+                    </DataGridCommandColumn>*@
+                <DataGridCommandColumn TItem="OptikerImageResult" />
+                <DataGridColumn TItem="OptikerImageResult" Field="@nameof(OptikerImageResult.Kundennummer)" Editable="true" Caption="Name" />
+                <DataGridNumericColumn TItem="OptikerImageResult" Field="@nameof(OptikerImageResult.AnAugenarztGeschickt)" Editable="true" Caption="AnAugenarztGeschickt" />
+                <DataGridNumericColumn TItem="OptikerImageResult" Field="@nameof(OptikerImageResult.VomAugenarztBefundet)" Editable="true" Caption="VomAugenarztBefundet" />
+                <DataGridNumericColumn TItem="OptikerImageResult" Field="@nameof(OptikerImageResult.VomApothekerGelesenAm)" Editable="true" Caption="GelesenAm" />
+                <DataGridColumn TItem="OptikerImageResult" Field="@nameof(OptikerImageResult.BewertungVomAugenarzt)" Editable="true" Caption="BewertungVomAugenarzt" />
+                <DataGridColumn TItem="OptikerImageResult" Field="@nameof(OptikerImageResult.ByteContentThumb128)" Caption="Bild" Editable="false">
+                    <DisplayTemplate Context="imagecontext">
+                        @{
+                            var data = imagecontext.ByteContentThumb128;
+                            if (data != null)
+                            {
+                                Model.ImageHolder imageHolfder = new Model.ImageHolder(data, "");
+                                <img src="@imageHolfder.Uri" style="width:128px;" />
+                            }
+                        }
+                    </DisplayTemplate>
+                </DataGridColumn>
+            </DataGrid>
+        }
+    </DetailRowTemplate>
+
+</DataGrid>
+
+@code{
+    private OptikerResult _selectedRecord { get; set; } = null;
+    private List<OptikerResult> Editrecords { get; set; }
+    private bool _dataLoading = false;
+
+
+    private async void OnRowInsertedOrUpdated(SavedRowItem<BarBuddy.Server.Entities.Optiker, Dictionary<string, object>> e)
+    {
+        /*
+
+        */
+        // await _services.AddOrUpdateWorkshop(savedItem);
+        StateHasChanged();
+    }
+
+    private string Prefix(string description)
+    {
+        if (!string.IsNullOrEmpty(description))
+        {
+            if (description.Length > 10)
+            {
+                return description.Substring(0, 10) + "...";
+            }
+            else
+                return description;
+        }
+        return "";
+    }
+
+    string checkedValue = "green";
+
+    async void OnCheckedValueChanged(string value)
+    {
+
+    }
+
+    private async void OnRowRemoving(object e)
+    {
+
+        // https://docs.devexpress.com/Blazor/DevExpress.Blazor.DxDataGridCommandColumn
+        var arg = e;
+        var ee = (Optiker)e.GetType().GetProperty("Item").GetValue(e, null);
+        //_services.RemoveProduct(ee.Id);
+        // Optikers.Remove(ee);
+        StateHasChanged();
+    }
+
+    public void OnRowUpdated(SavedRowItem<OptikerResult, Dictionary<string, object>> e)
+    {
+        //var arg = e;
+
+        //_services.UpdateProduct(e.Item.Id, e.Item);
+        //// _services.UpdateProduct(e.Item.Id, Articelname, ProductSet, IncentiveSet, CategoryName, MessePV, MesseSTA, Searchtags);
+        //StateHasChanged();
+    }
+
+
+    private async void OnRowInserted(SavedRowItem<OptikerResult, Dictionary<string, object>> e)
+    {
+        OptikerResult savedItem = e.Item;
+        // await LocationService.AddOptiker(savedItem);
+        StateHasChanged();
+
+    }
+
+    private async void OnChildRowInserted(SavedRowItem<OptikerImageResult, Dictionary<string, object>> e)
+    {
+        var savedItem = e.Item;
+        // await LocationSpotService.AddFundusImage(_selectedOptiker, savedItem);
+        StateHasChanged();
+
+    }
+
+    public void OnChildRowUpdated(SavedRowItem<OptikerImageResult, Dictionary<string, object>> e)
+    {
+
+    }
+
+    private async void OnChildRowRemoving(object e)
+    {
+
+        // https://docs.devexpress.com/Blazor/DevExpress.Blazor.DxDataGridCommandColumn
+        var arg = e;
+        // var ee = (GlaukomImage)e.GetType().GetProperty("Item").GetValue(e, null);
+        // await LocationSpotService.DeleteImage(ee);
+        // _selectedOptiker.FundusImages.Remove(ee);
+        StateHasChanged();
+    }
+
+
+    protected override Task OnInitializedAsync()
+    {
+
+        return base.OnInitializedAsync();
+    }
+
+    bool OnCustomFilter(Optiker model)
+    {
+        // https://blazorise.com/docs/extensions/datagrid/#custom-filtering-1
+        // _products.AddRange(_services.GetAllProducts().Wait());
+        StateHasChanged();
+        return false;
+    }
+
+    private async Task<List<BarBuddy.Server.Entities.Optiker>> LoadData()
+    {
+        Session.UserMessage("Laden", Model.UserMessageType.Info);
+        return await CompanyService.GetAllOptikers();
+    }
+
+    private async void LoadRecords()
+    {
+        if (_dataLoading)
+            return;
+
+        try
+        {
+            _dataLoading = true;
+            List<BarBuddy.Server.Entities.Optiker> Datarecords = await LoadData();
+
+            Editrecords = new List<OptikerResult>();
+            foreach (BarBuddy.Server.Entities.Optiker a in Datarecords)
+            {
+                OptikerResult ne = Mapper.Map<OptikerResult>(a);
+                // Wird im Gegensatz zu Bar NICHT durch den obigen Mapper gemacht
+                foreach (GlaukomImage gi in a.FundusImages )
+                {
+                    OptikerImageResult bsr = Mapper.Map<OptikerImageResult>(gi);
+                    ne.OptikerImages.Add(bsr);
+                }
+                Editrecords.Add(ne);
+            }
+            StateHasChanged();
+
+        }
+        finally
+        {
+            _dataLoading = false;
+            StateHasChanged();
+        }
+    }
+}
+

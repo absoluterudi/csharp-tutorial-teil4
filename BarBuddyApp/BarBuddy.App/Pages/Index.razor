@@ -1,0 +1,142 @@
+﻿@page "/"
+@using System.Globalization
+@inject IJSRuntime jsRuntime
+@inject ILocationService locationService
+@inject IReservationService reservationService
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigationManager
+
+<div id="page-index">
+    <NavMenu></NavMenu>
+
+    <div id="map" class="@(selectedLocation == null ? "fullscreen" : null)">
+
+    </div>
+
+    <ul id="location-list" style="display: none">
+        @foreach (var location in locationList)
+        {
+            <li id="@location.Id" data-lat="@location.Latitude.ToString(new CultureInfo("en-US"))" data-lng="@location.Longitude.ToString(new CultureInfo("en-US"))" data-places="@location.FreePlaces"></li>
+        }
+    </ul>
+
+    <div class="fixed-bottom @(selectedLocation == null ? "empty" : null)">
+        @if (selectedLocation != null)
+        {
+            <button class="btn-selection-close" @onclick="@(() => CloseSelection())">
+                <i class="fas fa-angle-double-down"></i>
+            </button>
+
+            <div class="m-b-10 font-weight-500">
+                @selectedLocation.BarName
+            </div>
+
+            <div class="m-b-10">
+                @if (selectedLocation.Distance < 1000)
+                {
+                    <span>@selectedLocation.Distance.ToString("N0") m Entfernung</span>
+                }
+                else
+                {
+                    <span>@((selectedLocation.Distance / 1000).ToString("N2")) km Entfernung</span>
+                }
+            </div>
+
+            <div class="m-b-20" style="height: 43px">
+                @if (selectedLocation.MaxPersonOutdoor > 0)
+                {
+                    <div class="m-b-5">
+                        <div>
+                            Außenbereich: <span class="font-weight-500">@selectedLocation.FreePlacesOutdoor @(selectedLocation.FreePlacesOutdoor == 1 ? " freier Platz" : " freie Plätze")</span> (von @selectedLocation.MaxPersonOutdoor)
+                        </div>
+                    </div>
+                }
+
+                @if (selectedLocation.MaxPersonIndoor > 0)
+                {
+                    <div class="m-b-5">
+                        <div>
+                            Innenbereich: <span class="font-weight-500">@selectedLocation.FreePlacesIndoor @(selectedLocation.FreePlacesIndoor == 1 ? " freier Platz" : " freie Plätze")</span> (von @selectedLocation.MaxPersonIndoor)
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <a class="btn-primary btn-md btn-block @(selectedLocation.FreePlaces == 0 ? "disabled opacity-0" : null)" href="/location/@selectedLocation.Id">
+                Auswahl bestätigen
+            </a>
+        }
+    </div>
+</div>
+
+@code{
+    CurrentPosition currentPosition { get; set; }
+
+    List<BarResult> locationList { get; set; } = new List<BarResult>();
+
+    BarResult selectedLocation { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var cancellation = await reservationService.CheckCurrentReservation();
+            if (cancellation)
+            {
+                return;
+            }
+
+            await jsRuntime.InvokeVoidAsync("initGMaps", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async void SetMyPosition(double lat, double lng)
+    {
+        currentPosition = new CurrentPosition();
+        currentPosition.MyLatitude = lat;
+        currentPosition.MyLongitude = lng;
+        currentPosition.CenterLatitude = lat;
+        currentPosition.CenterLongitude = lng;
+
+        locationList = await locationService.GetLocationsWithinRadius(currentPosition);
+
+        StateHasChanged();
+
+        await jsRuntime.InvokeVoidAsync("addLocationsToGMaps", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public async void SetCenterScreenPosition(double lat, double lng)
+    {
+        if (currentPosition == null)
+        {
+            currentPosition = new CurrentPosition();
+            currentPosition.MyLatitude = lat;
+            currentPosition.MyLongitude = lng;
+        }
+
+        currentPosition.CenterLatitude = lat;
+        currentPosition.CenterLongitude = lng;
+
+        locationList = await locationService.GetLocationsWithinRadius(currentPosition);
+
+        StateHasChanged();
+
+        await jsRuntime.InvokeVoidAsync("addLocationsToGMaps", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public void SetSelectedLocation(string id)
+    {
+        var locId = long.Parse(id);
+        selectedLocation = locationList.FirstOrDefault(o => o.Id == locId);
+        StateHasChanged();
+    }
+
+    void CloseSelection()
+    {
+        selectedLocation = null;
+        StateHasChanged();
+    }
+}

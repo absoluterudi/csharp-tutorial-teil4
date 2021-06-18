@@ -1,0 +1,82 @@
+﻿@page "/login"
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject ILocalStorageService localStorage
+@inject CustomAuthStateProvider customAuthStateProvider
+@using System.Text.Json;
+
+@if (isLoading)
+{
+    <div class="modal-overlay">
+        <Chase />
+    </div>
+}
+
+<div id="login-page" class="container">
+    <div id="error-compenent" class="@(string.IsNullOrWhiteSpace(error) ? "d-none" : null)">
+        @error
+    </div>
+
+    <EditForm Model="@Model" OnValidSubmit="@DoLogin" class="form-signin">
+        <DataAnnotationsValidator />
+
+        <h4 class="m-b-40 text-center">Bitte melde Dich an, um Deine Daten zu bearbeiten.</h4>
+
+        <div class="row">
+            <div class="col-4 offset-4">
+                <div class="form-group">
+                    <InputText @bind-Value="@Model.Login" placeholder="E-Mail" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <InputText type="password" @bind-Value="@Model.Password" placeholder="Passwort" class="form-control" />
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block text-uppercase">
+                    Anmelden
+                </button>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code{
+    UserLogin Model { get; set; } = new UserLogin();
+
+    bool isLoading { get; set; } = false;
+
+    string error { get; set; }
+
+    async Task DoLogin()
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            var response = await httpClient.PostAsJsonAsync($"api/Optiker/DoLogin", Model);
+            var content = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException(content);
+            }
+
+            var result = JsonSerializer.Deserialize<LoginResult>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (result.Successful)
+            {
+                await localStorage.SetItemAsync("authToken", result.Token);
+                await localStorage.SetItemAsync("locationId", result.EntityId);
+                customAuthStateProvider.MarkUserAsAuthenticated(Model.Login);
+                navigationManager.NavigateTo($"/OptikerData/{result.EntityId}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

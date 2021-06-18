@@ -1,0 +1,22 @@
+﻿@inject NavigationManager navigationManager
+
+<div class="nav">
+    <div class="nav-item @(tabIndex == 0 ? "active" : "disabled")"><i class="fas fa-map-marker-alt m-r-5"></i><i class="far fa-calendar-check m-r-5"></i>Blockieren</div>
+    <div class="nav-item @(tabIndex == 1 ? "active" : "disabled")"><i class="fas fa-qrcode m-r-5"></i>Tisch belegen</div>
+</div>
+
+@code{
+    int tabIndex { get; set; } = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tabIndex = 0;
+
+        if (navigationManager.Uri.Contains("/scan") ||
+            navigationManager.Uri.Contains("/checkin") ||
+            navigationManager.Uri.Contains("/checkout"))
+        {
+            tabIndex = 1;
+        }
+    }
+}

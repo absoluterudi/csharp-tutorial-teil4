@@ -1,0 +1,15 @@
+# DocProject is a documentation generator add-in
+AdminBackend/bin/
+AdminBackend/obj/
+BarBlazorWebClient/BarBuddy.Web/bin
+BarBlazorWebClient/BarBuddy.Web/obj 
+BarBuddyApp/BarBuddy.App/bin
+BarBuddyApp/BarBuddy.App/obj
+OptikerBlazorClient/bin
+OptikerBlazorClient/obj
+OptikerBlazorServer/bin
+OptikerBlazorServer/obj
+shared/BarBuddy.DTOs/bin
+shared/BarBuddy.DTOs/obj
+WebApi/BarBuddy.Server/bin
+WebApi/BarBuddy.Server/obj

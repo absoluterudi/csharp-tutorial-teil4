@@ -1,0 +1,30 @@
+﻿@page "/"
+@inject NavigationManager NavigationManager
+
+<h1>BarBuddy </h1>
+
+<Button Clicked="Optikerlist" Color="Color.Primary">Alle Optiker</Button>
+<Button Clicked="Barlist" Color="Color.Primary">Alle Bars</Button>
+<Button Clicked="Augenarztlist" Color="Color.Primary">Alle Augenärzte</Button>
+<Button Clicked="SingleBar" Color="Color.Primary">SingleBar</Button>
+
+@code{
+
+    private void SingleBar()
+    {
+        NavigationManager.NavigateTo("SingleBar");
+    }
+
+    private void Barlist()
+    {
+        NavigationManager.NavigateTo("barlist");
+    }
+    private void Optikerlist()
+    {
+        NavigationManager.NavigateTo("optikerlist");
+    }
+    private void Augenarztlist()
+    {
+        NavigationManager.NavigateTo("augenarztlist");
+    }
+}

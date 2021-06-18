@@ -1,0 +1,63 @@
+﻿@page "/checkin/{ReservationId:long}"
+@inject IJSRuntime jsRuntime
+@inject IReservationService reservationService
+@inject NavigationManager navigationManager
+
+<SpinLoader IsLoading="@isLoading">
+    <LoadingTemplate>
+        <div class="modal-overlay">
+            <Chase />
+        </div>
+    </LoadingTemplate>
+    <ContentTemplate>
+        <div id="page-checkin">
+            <NavMenu></NavMenu>
+
+            @if (model != null && model.CheckInTime.HasValue)
+            {
+                <div class="main-content">
+                    <h3>@model.BarName</h3>
+
+                    <hr class="m-t-20 m-b-40" />
+
+                    <div class="m-b-30">Du bist eingecheckt!</div>
+                    <div>CheckIn-Zeitpunkt:</div>
+                    <div class="m-t-5 m-b-5"><strong>@model.CheckInTime.Value.ToString("dd.MM.yyyy HH:mm")</strong></div>
+                </div>
+
+                <div class="fixed-bottom">
+                    <a class="btn-primary btn-block" href="/checkout/@ReservationId">
+                        Auschecken
+                    </a>
+                </div>
+            }
+        </div>
+    </ContentTemplate>
+</SpinLoader>
+
+@code{
+    [Parameter]
+    public long ReservationId { get; set; }
+
+    ReservationResult model { get; set; }
+
+    bool isLoading { get; set; } = true;
+
+    protected async override Task OnParametersSetAsync()
+    {
+        try
+        {
+            isLoading = true;
+            model = await reservationService.CheckIn(ReservationId);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

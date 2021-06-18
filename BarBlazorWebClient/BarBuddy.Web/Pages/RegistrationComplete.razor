@@ -1,0 +1,66 @@
+﻿@page "/registration-complete/{locationId:long}/{token}"
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+
+@if (isLoading)
+{
+    <div class="modal-overlay">
+        <Chase />
+    </div>
+}
+
+<div id="registration-complete-page" class="container text-center">
+    <div id="error-compenent" class="@(string.IsNullOrWhiteSpace(error) ? "d-none" : null)">
+        @error
+    </div>
+
+    @if (success)
+    {
+        <div class="m-b-40">
+            <h5 class="m-b-20">Deine Bar/Dein Restaurant wurde erfolgreich bei BarBuddy aktiviert.</h5>
+
+            <div>Bitte melde Dich an, um Deine Spots anzulegen.</div>
+        </div>
+
+        <a href="/login" class="btn btn-outline-secondary">Zum Login</a>
+    }
+</div>
+
+@code{
+    [Parameter]
+    public long LocationId { get; set; }
+
+    [Parameter]
+    public string Token { get; set; }
+
+    bool isLoading { get; set; } = true;
+
+    string error { get; set; }
+
+    bool success { get; set; } = false;
+
+    protected async override Task OnParametersSetAsync()
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            var response = await httpClient.GetAsync($"api/location/CompleteRegistration/{LocationId}/{Token}");
+            var content = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException(content);
+            }
+            success = true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

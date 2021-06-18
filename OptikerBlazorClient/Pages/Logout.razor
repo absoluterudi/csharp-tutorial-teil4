@@ -1,0 +1,23 @@
+﻿@page "/logout"
+@inject NavigationManager navigationManager
+@inject ILocalStorageService localStorage
+@inject CustomAuthStateProvider customAuthStateProvider
+
+@code{
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await localStorage.RemoveItemAsync("authToken");
+            await localStorage.RemoveItemAsync("locationId");
+            customAuthStateProvider.MarkUserAsLoggedOut();
+            navigationManager.NavigateTo("/", true);
+        }
+        catch (Exception ex)
+        {
+        }
+        finally
+        {
+        }
+    }
+}

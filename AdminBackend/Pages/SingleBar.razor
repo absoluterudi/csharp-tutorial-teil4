@@ -1,0 +1,289 @@
+﻿@page "/singlebar/{EntityId:long}"
+@using AutoMapper;
+@using Microsoft.Extensions.Configuration
+@using System.Text
+@using System.Globalization
+@using BarBuddy.DTOs
+@using BarBuddy.DTOs.Enums;
+@using BarBuddy.Server.Entities;
+@using Services
+@inject CompanyService CompanyService
+@inject CompanySpotService CompanySpotService
+@inject Session Session
+@inject IMapper Mapper
+<h1>Bar</h1>
+
+<div class="row" style="height:50px;">
+    <div class="col-2" style="width:100px;">
+        @if (_dataLoading)
+        {
+            <Faso.Blazor.SpinKit.SpinKitCircle />
+        }
+        else
+        {
+            <Button Color="Color.Primary" Clicked="LoadRecords">Bars laden</Button>
+        }
+    </div>
+</div>
+
+
+@*https://blazorise.com/docs/components/radio/*@
+
+<DataGrid TItem="BarResult"
+          Data="@Editrecords"
+          ShowPager="true"
+          PageSize="20"
+          EditMode="DataGridEditMode.Popup"
+          Sortable="true"
+          Filterable="true"
+          Editable="true"
+          RowInserted="@OnRowInserted"
+          RowRemoving="@OnRowRemoving"
+          RowUpdated="@OnRowUpdated"
+          UseInternalEditing="true"
+          FilterMethod="DataGridFilterMethod.Contains"
+          DetailRowTrigger="@((item)=>item.BarSpots!=null && item.BarSpots.Any() &&  item.Id == _selectedRecord?.Id)"
+          @bind-SelectedRow="@_selectedRecord">
+    <DataGridColumns>
+        <DataGridCommandColumn TItem="BarResult" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.Id)" Caption="Id" Sortable="true" Filterable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.BarName)" Caption="CompanyName" Editable="true" Sortable="true" Filterable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.Street)" Caption="Street" Editable="true" Sortable="true" Filterable="true" /> />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.AddressAddition)" Caption="AddressAddition" Editable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.PostalCode)" Caption="PostalCode" Editable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.City)" Caption="City" Editable="true" Sortable="true" Filterable="true" />
+    </DataGridColumns>
+    <DetailRowTemplate>
+        @{
+            var spots = (context as BarResult).BarSpots;
+
+            <DataGrid TItem="BarSpotResult"
+                      Data="spots"
+                      Sortable="false"
+                      Editable="true"
+                      EditMode="DataGridEditMode.Popup"
+                      RowInserted="@OnChildRowInserted"
+                      RowRemoving="@OnChildRowRemoving"
+                      RowUpdated="@OnChildRowUpdated"
+                      ShowCaptions="true">
+                <DataGridCommandColumn TItem="BarSpotResult" />
+                <DataGridColumn TItem="BarSpotResult" Field="@nameof(BarSpotResult.Name)" Editable="true" Caption="Name" />
+                <DataGridNumericColumn TItem="BarSpotResult" Field="@nameof(BarSpotResult.MaxPersons)" Editable="true" Caption="Plätze" />
+            </DataGrid>
+        }
+    </DetailRowTemplate>
+</DataGrid>
+
+<!--<DataGrid TItem="BarBuddy.Server.Entities.Reservation"
+          Data="@Reservations"
+          ShowPager="true"
+          PageSize="20"
+          EditMode="DataGridEditMode.Popup"
+          Sortable="true"
+          Filterable="true"
+          Editable="true"
+          RowInserted="@OnRowInsertedReservation"
+          RowRemoving="@OnRowInsertedReservation"
+          RowUpdated="@OnRowInsertedReservation"
+          UseInternalEditing="true"
+          FilterMethod="DataGridFilterMethod.Contains"
+          @bind-SelectedRow="@_selectedReservation">
+    <DataGridColumns>
+        <DataGridCommandColumn TItem="Reservation" />-->
+@*<NewCommandTemplate>
+                    <Button Color="Color.Success" Clicked="@context.Clicked">Edit</Button>
+                </NewCommandTemplate>
+            <DataGridColumn TItem="BarBuddy.Server.Entities.Reservation" Field="@nameof(BarBuddy.Server.Entities.Reservation.Id)" Caption="Id" Sortable="true" Filterable="true" />
+            <DataGridColumn TItem="BarBuddy.Server.Entities.Reservation" Field="@nameof(BarBuddy.Server.Entities.Reservation.CheckInTime)" Caption="BarName" Editable="true" Sortable="true" Filterable="true" />
+            <DataGridColumn TItem="BarBuddy.Server.Entities.Reservation" Field="@nameof(BarBuddy.Server.Entities.Reservation.Number)" Caption="Tisch" Editable="true" Sortable="true" Filterable="true" /> />
+            <DataGridColumn TItem="BarBuddy.Server.Entities.Reservation" Field="@nameof(BarBuddy.Server.Entities.Reservation.CountPerson)" Caption="CountPerson" Editable="true" Sortable="true" Filterable="true" />
+        </DataGridColumns>
+    </DataGrid>*@
+
+
+
+@code{
+    private Modal modalAddSpotDialogRef;
+
+    [Parameter]
+    public long EntityId { get; set; }
+    private List<BarBuddy.Server.Entities.Reservation> Reservations { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        long a1 = EntityId;
+        // var projectDetail = await getProjectDetails(EntityId); // ProgNum will change as it get changes in url, you don't have to do anything extra here.
+    }
+
+    private async void EnrichReservations()
+    {
+#if DDDDD
+    BarBuddy.Server.Entities.Bar bar = Datarecords.FirstOrDefault();
+    if (Reservations == null || bar.BarSpots == null)
+        return;
+    foreach (Reservation r in Reservations)
+    {
+        BarSpot ls = bar.BarSpots.Where(x => x.Id == r.LocationSpotId).FirstOrDefault();
+        if (ls != null)
+        {
+            r.SpotName = ls.Name;
+            r.SpotDescription = ls.Description;
+            r.SpotType = ls.SpotType;
+            r.MaxPersons = ls.MaxPersons;
+        }
+    }
+#endif
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        // var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        // https://softchris.github.io/pages/dotnet-blazor-routing.html#_4-adding-query-parameters
+        // if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("page", out var param))
+        // {
+        // this.pageParam = Int32.Parse(param);
+        // }
+        // if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("pageSize", out var param2))
+        // {
+        // this.pageSizeParam = Int32.Parse(param2);
+        // }
+        // this.products = Data.Products.GetProducts(pageParam, pageSizeParam);
+        return base.OnInitializedAsync();
+    }
+
+    private BarResult _selectedRecord { get; set; } = null;
+    private List<BarResult> Editrecords { get; set; }
+    private bool _dataLoading = false;
+
+    private async void OnRowInsertedOrUpdated(SavedRowItem<BarResult, Dictionary<string, object>> e)
+    {
+        /*
+
+        */
+        // await _services.AddOrUpdateWorkshop(savedItem);
+        StateHasChanged();
+    }
+
+    private string Prefix(string description)
+    {
+        if (!string.IsNullOrEmpty(description))
+        {
+            if (description.Length > 10)
+            {
+                return description.Substring(0, 10) + "...";
+            }
+            else
+                return description;
+        }
+        return "";
+    }
+
+    string checkedValue = "green";
+
+    async void OnCheckedValueChanged(string value)
+    {
+
+    }
+
+    private async void OnRowRemoving(object e)
+    {
+
+        // https://docs.devexpress.com/Blazor/DevExpress.Blazor.DxDataGridCommandColumn
+        var arg = e;
+        // var ee = (BarBuddy.Server.Entities.Bar)e.GetType().GetProperty("Item").GetValue(e, null);
+        //_services.RemoveProduct(ee.Id);
+        // Datarecords.Remove(ee);
+        StateHasChanged();
+    }
+
+    public void OnRowUpdated(SavedRowItem<BarResult, Dictionary<string, object>> e)
+    {
+        //var arg = e;
+
+        //_services.UpdateProduct(e.Item.Id, e.Item);
+        //// _services.UpdateProduct(e.Item.Id, Articelname, ProductSet, IncentiveSet, CategoryName, MessePV, MesseSTA, Searchtags);
+        //StateHasChanged();
+    }
+
+
+    private async void OnRowInserted(SavedRowItem<BarResult, Dictionary<string, object>> e)
+    {
+        //BarBuddy.Server.Entities.Bar savedItem = e.Item;
+        //await CompanyService.AddBar(savedItem);
+        StateHasChanged();
+
+    }
+
+    private async void OnChildRowInserted(SavedRowItem<BarSpotResult, Dictionary<string, object>> e)
+    {
+        var savedItem = e.Item;
+        //await CompanySpotService.AddSpot(_selectedRecord, savedItem);
+        StateHasChanged();
+
+    }
+
+    public void OnChildRowUpdated(SavedRowItem<BarSpotResult, Dictionary<string, object>> e)
+    {
+        var savedItem = e.Item;
+    }
+
+    private async void OnChildRowRemoving(object e)
+    {
+
+        // https://docs.devexpress.com/Blazor/DevExpress.Blazor.DxDataGridCommandColumn
+        var arg = e;
+        var ee = (BarSpotResult)e.GetType().GetProperty("Item").GetValue(e, null);
+        // await CompanySpotService.DeleteSpot(ee);
+        // _selectedRecord.BarSpots.Remove(ee);
+        StateHasChanged();
+    }
+
+    bool OnCustomFilter(BarResult model)
+    {
+        // https://blazorise.com/docs/extensions/datagrid/#custom-filtering-1
+        // _products.AddRange(_services.GetAllProducts().Wait());
+        StateHasChanged();
+        return false;
+    }
+
+    private async Task<List<BarBuddy.Server.Entities.Bar>> LoadData()
+    {
+        Session.UserMessage("Laden", Model.UserMessageType.Info);
+        return await CompanyService.GetSingleBar(EntityId);
+    }
+
+
+    private async void LoadRecords()
+    {
+        if (_dataLoading)
+            return;
+
+        try
+        {
+            _dataLoading = true;
+            List<BarBuddy.Server.Entities.Bar> Datarecords = await LoadData();
+
+            Editrecords = new List<BarResult>();
+            foreach (BarBuddy.Server.Entities.Bar a in Datarecords)
+            {
+                BarResult ne = Mapper.Map<BarResult>(a);
+                /* Wird schon durch den obigen Mapper gemacht
+                foreach (BarSpot bs in a.BarSpots )
+                {
+                    BarSpotResult bsr = Mapper.Map<BarSpotResult>(bs);
+                    ne.BarSpots.Add(bsr);
+                }
+                */
+                Editrecords.Add(ne);
+            }
+            StateHasChanged();
+
+        }
+        finally
+        {
+            _dataLoading = false;
+            StateHasChanged();
+        }
+    }
+}
+

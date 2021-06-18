@@ -1,0 +1,126 @@
+﻿@import url(//fonts.googleapis.com/css?family=Roboto:400,500,700);
+@import '_var.scss';
+@import '_spacing-helpers';
+
+html, body {
+    font-family: "Roboto";
+    font-size: 16px;
+    color: $default-color;
+    margin: 0;
+}
+
+* {
+    font-family: "Roboto";
+    color: $default-color;
+}
+
+a {
+    color: $default-color;
+
+    &:hover {
+        color: $default-color;
+    }
+}
+
+.btn.focus, .btn:focus {
+    outline: none !important;
+    box-shadow: none;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
+
+.invalid {
+    border: 1px solid $error-border !important;
+    background-color: $error-background !important;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.2);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    --sk-color: black;
+}
+
+#error-compenent {
+    color: $error-border;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.site-header {
+    background: white;
+    font-size: 1.1em;
+    background-color: #e9ecef;
+}
+
+.body {
+    #registration-page,
+    #registration-success-page,
+    #registration-complete-page,
+    #login-page {
+        margin-top: 50px;
+        margin-bottom: 50px;
+    }
+
+    #location-page {
+        margin-top: 30px;
+    }
+}
+
+.qrcode-image {
+    border: 2px solid black;
+    border-radius: 5px;
+}
+
+#location-page {
+    .sidebar {
+        height: calc(100vh - 148px);
+        position: sticky;
+        top: 0;
+        background-image: linear-gradient( 180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+        color: white;
+    }
+
+
+    .nav {
+        .nav-item {
+            padding: 10px 20px;
+            border-bottom: 2px solid white;
+
+            .nav-link {
+                color: white;
+
+                i {
+                    width: 2rem;
+                    font-size: 1.1rem;
+                    color: white;
+                }
+            }
+        }
+    }
+
+    .spot-action-buttons {
+        display: inline-block;
+        vertical-align: middle;
+        font-size: 30px;
+        cursor: pointer;
+
+        &.fa-file-download {
+            font-size: 26px;
+        }
+
+        + .spot-action-buttons {
+            margin-left: 10px;
+        }
+    }
+}

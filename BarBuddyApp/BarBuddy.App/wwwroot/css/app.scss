@@ -1,0 +1,292 @@
+﻿@import url(//fonts.googleapis.com/css?family=Roboto:400,500,700);
+@import '_var.scss';
+@import '_spacing-helpers';
+
+html, body {
+    font-family: "Roboto";
+    font-size: 16px;
+    color: $default-color;
+    margin: 0;
+    overflow: hidden;
+}
+
+* {
+    font-family: "Roboto";
+    color: $default-color;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.2);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    --sk-color: white;
+
+    .wait-action-descr {
+        font-size: 24px;
+        margin-top: 10px;
+    }
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+.hide {
+    display: none;
+}
+
+.opacity-0 {
+    opacity: 0 !important;
+}
+
+.font-weight-400 {
+    font-weight: 400 !important;
+}
+
+.font-weight-500 {
+    font-weight: 500 !important;
+}
+
+label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+
+h2, h3 {
+    margin: 0;
+    font-weight: 500 !important;
+}
+
+.form-control {
+    display: inline-block;
+    font-weight: 400;
+    color: $default-color;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: white;
+    border: 1px solid $default-color;
+    padding: 10px;
+    font-size: 1em;
+    border-radius: 25px;
+    outline: 0;
+    min-width: 250px;
+}
+
+.btn-primary,
+.btn-secondary {
+    display: inline-block;
+    font-weight: 500 !important;
+    color: $default-color;
+    text-align: center;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 10px;
+    font-size: 1.3em;
+    border-radius: 25px;
+    text-decoration: none;
+    box-sizing: border-box;
+    outline: 0;
+    text-transform: uppercase;
+
+    &.btn-md {
+        font-size: 1em !important;
+    }
+
+    &.disabled {
+        pointer-events: none;
+        opacity: 0.5;
+    }
+}
+
+.btn-primary {
+    border-color: $default-color;
+    background-color: $btn-primary;
+}
+
+.btn-secondary {
+    border-color: $default-color;
+    background-color: $btn-secondary;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+.btn-back {
+    position: absolute;
+    top: 46px;
+    left: 20px;
+    text-decoration: none;
+
+    i {
+        font-size: 30px;
+        color: $default-color;
+    }
+}
+
+.nav {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+
+    .nav-item {
+        -ms-flex: 1 1 auto;
+        flex: 1 1 auto;
+        text-align: center;
+        color: black !important;
+        text-decoration: none;
+        display: block;
+        line-height: 40px;
+
+        &.active {
+            background-color: $btn-secondary;
+        }
+
+        &.disabled {
+            pointer-events: none;
+            cursor: default;
+            opacity: 0.5;
+        }
+    }
+}
+
+.main-content {
+    position: relative;
+    padding: 50px 20px 10px 20px;
+    background: white;
+    text-align: center;
+}
+
+.fixed-bottom {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1030;
+    padding: 20px 20px;
+    background: white;
+
+    &.empty {
+        padding: 0;
+    }
+}
+
+#page-index {
+    #map {
+        height: calc(100vh - 204px - 40px);
+
+        &.fullscreen {
+            height: calc(100vh - 40px);
+        }
+
+        .custom-map-control-button {
+            right: 20px !important;
+            bottom: 30px !important;
+            height: 40px;
+            width: 40px;
+            border: 1px solid $default-color;
+            border-radius: 25px;
+            background-color: $btn-primary;
+
+            i {
+                display: flex;
+                padding-top: 2px;
+                font-size: 22px;
+            }
+        }
+    }
+
+    .fixed-bottom:not(.empty) {
+        border-top: 1px solid $default-color;
+    }
+
+    .btn-selection-close {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        border: none;
+        font-size: 13px;
+    }
+}
+
+#page-reservation {
+    .counter {
+        text-align: center;
+        font-size: 45px;
+        font-weight: 500;
+    }
+
+    .time-expired-label {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 500;
+        color: red;
+    }
+}
+
+#page-scan {
+    .main-content {
+        text-align: center;
+        background: black;
+        height: 100vh;
+    }
+
+    .camera-stream-container {
+        position: relative;
+        height: 250px;
+        width: 250px;
+        margin: 0 auto;
+        margin-top: 100px;
+        border: 2px solid white;
+
+        #camera-stream {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .info {
+        color: white;
+        margin-top: 10px;
+    }
+}

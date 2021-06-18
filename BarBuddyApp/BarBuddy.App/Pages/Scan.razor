@@ -1,0 +1,48 @@
+﻿@page "/scan/{ReservationId:long}"
+@inject IQRCodeService qrCodeService
+@inject IJSRuntime jsRuntime
+@inject NavigationManager navigationManager
+
+<div id="page-scan">
+    <NavMenu></NavMenu>
+
+    <div class="main-content">
+        <div class="camera-stream-container">
+            <canvas id="camera-stream" hidden>
+            </canvas>
+        </div>
+
+        @if (ready)
+        {
+            <div class="info">
+                Platziere den QR-Code im Fenster
+            </div>
+        }
+    </div>
+</div>
+
+@code{
+    [Parameter]
+    public long ReservationId { get; set; }
+
+    bool ready { get; set; } = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await jsRuntime.InvokeVoidAsync("startCamera", DotNetObjectReference.Create(this));
+            ready = true;
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public async void SetQRCode(string qrCode)
+    {
+        if (await qrCodeService.IsValid(ReservationId, qrCode))
+        {
+            navigationManager.NavigateTo($"/checkin/{ReservationId}");
+        }
+    }
+}

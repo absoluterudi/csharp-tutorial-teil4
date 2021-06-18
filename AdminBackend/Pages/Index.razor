@@ -1,0 +1,61 @@
+﻿@page "/"
+@using Services
+@using BarBuddy.DTOs
+@inject NavigationManager NavigationManager
+@inject Session Session
+
+<h1>BarBuddy </h1>
+
+@if (Session.LoggedInApplication == BarBuddy.DTOs.Enums.ApplicationEnum.Admin)
+{
+    <Button Clicked="Optikerlist" Color="Color.Primary">Alle Optiker</Button>
+    <Button Clicked="Barlist" Color="Color.Primary">Alle Bars</Button>
+    <Button Clicked="Augenarztlist" Color="Color.Primary">Alle Augenärzte</Button>
+    <Button Clicked="SingleBar" Color="Color.Primary">SingleBar</Button>
+}
+else
+@if (Session.LoggedInApplication == BarBuddy.DTOs.Enums.ApplicationEnum.Bar)
+{
+    <Button Clicked="SingleBar" Color="Color.Primary">Bar</Button>
+}
+else
+@if (Session.LoggedInApplication == BarBuddy.DTOs.Enums.ApplicationEnum.Optiker)
+{
+    <Button Clicked="SingleOptiker" Color="Color.Primary">Optiker</Button>
+}
+else
+@if (Session.LoggedInApplication == BarBuddy.DTOs.Enums.ApplicationEnum.Augenarzt)
+{
+    <Button Clicked="SingleAugenarzt" Color="Color.Primary">Augenarzt</Button>
+}
+else
+{
+    <p>Sorry, nothing to todo</p>
+}
+@code{
+    private void SingleBar()
+    {
+        NavigationManager.NavigateTo($"/singleBar/{Session.LoggedInEntityId}");
+    }
+    private void SingleOptiker()
+    {
+        NavigationManager.NavigateTo($"SingleOptiker/{Session.LoggedInEntityId}");
+    }
+    private void SingleAugenarzt()
+    {
+        NavigationManager.NavigateTo($"SingleAugenarzt/{Session.LoggedInEntityId}");
+    }
+
+    private void Barlist()
+    {
+        NavigationManager.NavigateTo("barlist");
+    }
+    private void Optikerlist()
+    {
+        NavigationManager.NavigateTo("optikerlist");
+    }
+    private void Augenarztlist()
+    {
+        NavigationManager.NavigateTo("augenarztlist");
+    }
+}

@@ -1,0 +1,78 @@
+﻿@page "/login"
+@using Services 
+@inject Session Session
+
+<Layout>
+    <LayoutHeader>
+        <Jumbotron Class="text-center">
+            <JumbotronTitle>
+                <Icon Name="IconName.User" />
+                <br />
+                LOGIN
+            </JumbotronTitle>
+            ArgusEyes Backend
+        </Jumbotron>
+    </LayoutHeader>
+
+    <LayoutContent>
+        <div class="col-sm-4 offset-4 align-content-center">
+            <Card>
+                <CardHeader>
+                    Login
+                </CardHeader>
+                <CardBody>
+                    @if (_loading)
+                    {
+                        <SpinKitCircle />
+                    }
+                    else
+                    {
+                        <div class="form-group">
+                            <Field>
+                                <FieldLabel>
+                                    Benutzername
+                                </FieldLabel>
+                            </Field>
+                            <TextEdit @bind-Text="Model.BenutzerName" />
+                        </div>
+                        <div class="form-group">
+                            <Field>
+                                <FieldLabel>
+                                    Password
+                                </FieldLabel>
+                            </Field>
+                            <TextEdit @bind-Text="Model.BenutzerPasswort" Role="TextRole.Password" />
+                        </div>
+                        <Button Clicked="@LoginClicked" Color="Color.Primary">Login</Button>
+                    }
+                </CardBody>
+
+            </Card>
+        </div>
+    </LayoutContent>
+
+</Layout>
+
+@code {
+
+    private Model.AccountModel Model { get; set; } = new Model.AccountModel();
+
+    private bool _loading = false;
+
+    private async void LoginClicked()
+    {
+        try
+        {
+            _loading = true;
+
+            await Session.Login(Model.BenutzerName, Model.BenutzerPasswort);
+            _loading = false;
+        }
+        catch (Exception)
+        {
+            _loading = false;
+        }
+        StateHasChanged();
+    }
+
+}

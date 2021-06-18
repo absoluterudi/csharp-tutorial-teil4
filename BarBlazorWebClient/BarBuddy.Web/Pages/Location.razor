@@ -1,0 +1,504 @@
+﻿@page "/location/{Id:long}"
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject ILocalStorageService localStorage
+@inject CustomAuthStateProvider customAuthStateProvider
+@inject IBlazorDownloadFileService blazorDownloadFileService
+
+@if (isLoading)
+{
+    <div class="modal-overlay">
+        <Chase />
+    </div>
+}
+
+<div id="location-page" class="container-fluid">
+    <div class="row">
+        <div class="col-10 offset-1">
+            <div id="error-compenent" class="@(string.IsNullOrWhiteSpace(error) ? "d-none" : null)">
+                @error
+            </div>
+
+            <h4 class="m-b-40">Hier kannst Du Deine Daten für die BarBuddy-App ändern.</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-2 offset-1">
+            <div class="sidebar">
+                <ul class="nav flex-column">
+                    <li class="nav-item px-3">
+                        <NavLink class="nav-link" href="#base-data" data-toggle="collapse" aria-expanded="true" aria-controls="base-data">
+                            <i class="fas fa-home"></i> Stammdaten
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-3">
+                        <NavLink class="nav-link" href="#spot-data" data-toggle="collapse" aria-expanded="false" aria-controls="spot-data">
+                            <i class="fas fa-chair"></i> Spot-Daten
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-8">
+            <div id="base-data" class="collapse show" data-parent="#location-page">
+                <EditForm Model="@Model" OnValidSubmit="@UpdateLocation">
+                    <DataAnnotationsValidator />
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Vorname*</label>
+                                <InputText @bind-Value="@Model.FirstName" class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nachname*</label>
+                                <InputText @bind-Value="@Model.LastName" class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Name der Bar/des Restaurants*</label>
+                                <InputText @bind-Value="@Model.BarName" class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Straße*</label>
+                                <InputText @bind-Value="@Model.Street" class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Adresszusatz</label>
+                                <InputText @bind-Value="@Model.AddressAddition" class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>PLZ/Ort*</label>
+                                <div class="row">
+                                    <div class="col-4">
+                                        <InputText @bind-Value="@Model.PostalCode" class="form-control" maxlength="5" />
+                                    </div>
+                                    <div class="col-8">
+                                        <InputText @bind-Value="@Model.City" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Telefon</label>
+                                <InputText @bind-Value="@Model.Phone" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            @if (Model.QRCodeImage != null)
+                            {
+                                <div class="form-group">
+                                    <label>Dein QR-Code</label>
+                                    <div>
+                                        <img src="@Model.QRCodeImage" height="300" class="qrcode-image" />
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col">
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => PrintDoorQRCode())">Download QRCode</button>
+                                            <div><small>QRCode wird im Großformat für den Eingangsbereich heruntergeladen.</small></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <hr style="margin-bottom: 2rem" />
+
+                    <div class="row">
+                        <div class="col-3">
+                            <button type="submit" class="btn btn-success btn-block text-uppercase">
+                                Speichern
+                            </button>
+                        </div>
+
+                        <div class="col-3 offset-6">
+                            <button class="btn btn-danger btn-block text-uppercase" @onclick="@(() => DeleteLocation())">
+                                Konto löschen
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+
+            <div id="spot-data" class="collapse" data-parent="#location-page">
+                <DataGrid TItem="BarSpotResult" Data="@Model.LocationSpots.OrderBy(o => o.AreaType).ThenBy(o => o.Name).ToList()"
+                          PageSize="@Model.LocationSpots.Count"
+                          EditMode="DataGridEditMode.Inline"
+                          UseInternalEditing="false"
+                          Editable="true"
+                          Sortable="false"
+                          Filterable="false"
+                          RowInserted="@OnRowInsertedOrUpdated"
+                          RowUpdated="@OnRowInsertedOrUpdated">
+                    <DataGridColumns>
+                        <DataGridColumn TItem="BarSpotResult" Field="@nameof(BarSpotResult.Name)" Caption="Spotname" Editable="true" Sortable="false" Filterable="false" />
+                        <DataGridColumn TItem="BarSpotResult" Field="@nameof(BarSpotResult.Description)" Caption="Beschreibung" Editable="true" Sortable="false" Filterable="false" />
+                        <DataGridSelectColumn TItem="BarSpotResult" Field="@nameof(BarSpotResult.AreaType)" Caption="Bereich" Editable="true" Sortable="false" Filterable="false">
+                            <DisplayTemplate>
+                                @($"{(context as BarSpotResult).AreaType.GetDisplayName()}")
+                            </DisplayTemplate>
+                            <EditTemplate>
+                                @{
+                                    var enumList = Enum.GetValues(typeof(AreaType)).Cast<AreaType>();
+                                    <Select TValue="AreaType" SelectedValue="@((AreaType) (((CellEditContext) context).CellValue))" SelectedValueChanged="@(v => ((CellEditContext) context).CellValue = v)">
+                                        @foreach (var item in enumList)
+                                        {
+                                            <SelectItem TValue="AreaType" Value="@(item)">@item.GetDisplayName()</SelectItem>
+                                        }
+                                    </Select>
+                                }
+                            </EditTemplate>
+                        </DataGridSelectColumn>
+                        <DataGridSelectColumn TItem="BarSpotResult" Field="@nameof(BarSpotResult.SpotType)" Caption="Spot-Typ" Editable="true" Sortable="false" Filterable="false">
+                            <DisplayTemplate>
+                                @($"{(context as BarSpotResult).SpotType.GetDisplayName()}")
+                            </DisplayTemplate>
+                            <EditTemplate>
+                                @{
+                                    var enumList = Enum.GetValues(typeof(SpotType)).Cast<SpotType>();
+                                    <Select TValue="SpotType" SelectedValue="@((SpotType) (((CellEditContext) context).CellValue))" SelectedValueChanged="@(v => ((CellEditContext) context).CellValue = v)">
+                                        @foreach (var item in enumList)
+                                        {
+                                            <SelectItem TValue="SpotType" Value="@(item)">@item.GetDisplayName()</SelectItem>
+                                        }
+                                    </Select>
+                                }
+                            </EditTemplate>
+                        </DataGridSelectColumn>
+                        <DataGridNumericColumn TItem="BarSpotResult" Field="@nameof(BarSpotResult.MaxPersons)" Caption="Personenanzahl" Editable="true" Sortable="false" Filterable="false" />
+                        <DataGridCommandColumn TItem="BarSpotResult">
+                            <NewCommandTemplate>
+                                <i class="far fa-plus-square spot-action-buttons" @onclick="@context.Clicked" title="Neuen Spot anlegen"></i>
+
+                                <i class="fas fa-file-download spot-action-buttons" @onclick="@(()=>PrintAllSpotQRCodes())" title="Alle QRCodes herunterladen"></i>
+                            </NewCommandTemplate>
+                            <EditCommandTemplate>
+                                <Button Clicked="@context.Clicked" title="Bearbeiten">
+                                    <i class="far fa-edit"></i>
+                                </Button>
+                                <Button Clicked="@(()=>PrintSpotQRCode(context.Item.Id))" title="QRCode herunterladen">
+                                    <i class="fas fa-file-download"></i>
+                                </Button>
+                            </EditCommandTemplate>
+                            <DeleteCommandTemplate>
+                                <Button Clicked="@(()=>DeleteSpot(context.Item.Id))" title="Löschen">
+                                    <i class="far fa-trash-alt"></i>
+                                </Button>
+                            </DeleteCommandTemplate>
+                        </DataGridCommandColumn>
+                    </DataGridColumns>
+                </DataGrid>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code{
+    [Parameter]
+    public long Id { get; set; }
+
+    BarResult Model = new BarResult();
+
+    [CascadingParameter]
+    Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    bool isLoading { get; set; } = true;
+
+    string error { get; set; }
+
+    protected async override Task OnParametersSetAsync()
+    {
+        try
+        {
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                Model = await httpClient.GetFromJsonAsync<BarResult>($"api/location/GetLocationById/{Id}");
+            }
+            else
+            {
+                navigationManager.NavigateTo("/");
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    async Task UpdateLocation()
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                var response = await httpClient.PostAsJsonAsync($"api/location/UpdateLocation", Model);
+                var content = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApplicationException(content);
+                }
+            }
+            else
+            {
+                error = "Du bist nicht berechtigt!";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    async Task DeleteLocation()
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                await httpClient.DeleteAsync($"api/location/DeleteLocation/{Id}");
+                await localStorage.RemoveItemAsync("authToken");
+                await localStorage.RemoveItemAsync("locationId");
+                customAuthStateProvider.MarkUserAsLoggedOut();
+                navigationManager.NavigateTo("/", true);
+            }
+            else
+            {
+                error = "Du bist nicht berechtigt!";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    async Task PrintDoorQRCode()
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                var pdf = await httpClient.GetStringAsync($"api/pdf/QRCodeDoor/{Id}");
+                await blazorDownloadFileService.DownloadFile("QRCode_Door.pdf", pdf, "application/octet-stream");
+            }
+            else
+            {
+                error = "Du bist nicht berechtigt!";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    async void OnRowInsertedOrUpdated(SavedRowItem<BarSpotResult, Dictionary<string, object>> args)
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                BarSpotResult locationSpot = args.Item;
+
+                if (locationSpot.LocationId == 0)
+                {
+                    locationSpot.LocationId = Id;
+                }
+
+                foreach (var v in args.Values)
+                {
+                    if (v.Key == "Name")
+                    {
+                        locationSpot.Name = (string)v.Value;
+                    }
+                    if (v.Key == "Description")
+                    {
+                        locationSpot.Description = (string)v.Value;
+                    }
+                    if (v.Key == "AreaType")
+                    {
+                        locationSpot.AreaType = (AreaType)v.Value;
+                    }
+                    if (v.Key == "SpotType")
+                    {
+                        locationSpot.SpotType = (SpotType)v.Value;
+                    }
+                    if (v.Key == "MaxPersons")
+                    {
+                        locationSpot.MaxPersons = (int)v.Value;
+                    }
+                }
+
+                var response = await httpClient.PostAsJsonAsync($"api/location/AddOrUpdateLocationSpot", locationSpot);
+                var content = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApplicationException(content);
+                }
+
+                Model = await httpClient.GetFromJsonAsync<BarResult>($"/api/location/GetLocationById/{Id}");
+            }
+            else
+            {
+                error = "Du bist nicht berechtigt!";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    async Task PrintAllSpotQRCodes()
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                var response = await httpClient.GetAsync($"api/pdf/QRCodesAllSpots/{Id}");
+                var content = await response.Content.ReadFromJsonAsync<List<QRCodeSpotResult>>();
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApplicationException("Fehler");
+                }
+
+                foreach (var item in content)
+                {
+                    await blazorDownloadFileService.DownloadFile($"QRCode_{item.SpotName}.pdf", item.QRCode, "application/octet-stream");
+                }
+            }
+            else
+            {
+                error = "Du bist nicht berechtigt!";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    async void PrintSpotQRCode(long spotId)
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                var response = await httpClient.GetAsync($"api/pdf/QRCodeSpot/{Id}/{spotId}");
+                var content = await response.Content.ReadFromJsonAsync<QRCodeSpotResult>();
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApplicationException("Fehler");
+                }
+
+                await blazorDownloadFileService.DownloadFile($"QRCode_{content.SpotName}.pdf", content.QRCode, "application/octet-stream");
+            }
+            else
+            {
+                error = "Du bist nicht berechtigt!";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    async void DeleteSpot(long spotId)
+    {
+        try
+        {
+            error = null;
+            isLoading = true;
+
+            if ((await authenticationStateTask).User.Identity.IsAuthenticated && await localStorage.GetItemAsync<long>("locationId") == Id)
+            {
+                var response = await httpClient.DeleteAsync($"api/location/DeleteLocationSpot/{spotId}");
+                var content = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApplicationException(content);
+                }
+            }
+            else
+            {
+                error = "Du bist nicht berechtigt!";
+            }
+
+            Model = await httpClient.GetFromJsonAsync<BarResult>($"api/location/GetLocationById/{Id}");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

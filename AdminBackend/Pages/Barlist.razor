@@ -1,0 +1,217 @@
+﻿@page "/barlist"
+@using AutoMapper;
+@using Microsoft.Extensions.Configuration
+@using System.Text
+@using System.Globalization
+@using BarBuddy.Server.Entities;
+@using Services
+@using BarBuddy.DTOs
+@inject CompanyService CompanyService
+@inject CompanySpotService CompanySpotService
+@inject Session Session
+@inject IMapper Mapper
+<h1>Bars</h1>
+
+<div class="row" style="height:50px;">
+    <div class="col-2" style="width:100px;">
+        @if (_dataLoading)
+        {
+            <Faso.Blazor.SpinKit.SpinKitCircle />
+        }
+        else
+        {
+            <Button Color="Color.Primary" Clicked="LoadRecords">Produkte laden</Button>
+        }
+    </div>
+</div>
+
+
+@*https://blazorise.com/docs/components/radio/*@
+
+<DataGrid TItem="BarResult"
+          Data="@Editrecords"
+          ShowPager="true"
+          PageSize="20"
+          EditMode="DataGridEditMode.Popup"
+          Sortable="true"
+          Filterable="true"
+          Editable="true"
+          RowInserted="@OnRowInserted"
+          RowRemoving="@OnRowRemoving"
+          RowUpdated="@OnRowUpdated"
+          UseInternalEditing="true"
+          FilterMethod="DataGridFilterMethod.Contains"
+          DetailRowTrigger="@((item)=>item.BarSpots!=null && item.BarSpots.Any() &&  item.Id == _selectedRecord?.Id)"
+          @bind-SelectedRow="@_selectedRecord">
+    <DataGridColumns>
+        <DataGridCommandColumn TItem="BarResult" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.Id)" Caption="Id" Sortable="true" Filterable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.BarName)" Caption="CompanyName" Editable="true" Sortable="true" Filterable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.Street)" Caption="Street" Editable="true" Sortable="true" Filterable="true" /> />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.AddressAddition)" Caption="AddressAddition" Editable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.PostalCode)" Caption="PostalCode" Editable="true" />
+        <DataGridColumn TItem="BarResult" Field="@nameof(BarResult.City)" Caption="City" Editable="true" Sortable="true" Filterable="true" />
+    </DataGridColumns>
+    <DetailRowTemplate>
+        @{
+            var spots = (context as BarResult).BarSpots;
+
+            <DataGrid TItem="BarSpotResult"
+                      Data="spots"
+                      Sortable="false"
+                      Editable="true"
+                      EditMode="DataGridEditMode.Popup"
+                      RowInserted="@OnChildRowInserted"
+                      RowRemoving="@OnChildRowRemoving"
+                      RowUpdated="@OnChildRowUpdated"
+                      ShowCaptions="true">
+                <DataGridCommandColumn  TItem="BarSpotResult" />
+                <DataGridColumn         TItem="BarSpotResult" Field="@nameof(BarSpotResult.Name)" Editable="true" Caption="Name" />
+                <DataGridNumericColumn  TItem="BarSpotResult" Field="@nameof(BarSpotResult.MaxPersons)" Editable="true" Caption="Plätze" />
+            </DataGrid>
+        }
+    </DetailRowTemplate>
+</DataGrid>
+
+@code{
+    private BarResult _selectedRecord { get; set; } = null;
+    private List<BarResult> Editrecords { get; set; }
+    private bool _dataLoading = false;
+
+    private async void OnRowInsertedOrUpdated(SavedRowItem<BarResult, Dictionary<string, object>> e)
+    {
+        /*
+
+        */
+        // await _services.AddOrUpdateWorkshop(savedItem);
+        StateHasChanged();
+    }
+
+    private string Prefix(string description)
+    {
+        if (!string.IsNullOrEmpty(description))
+        {
+            if (description.Length > 10)
+            {
+                return description.Substring(0, 10) + "...";
+            }
+            else
+                return description;
+        }
+        return "";
+    }
+
+    string checkedValue = "green";
+
+    async void OnCheckedValueChanged(string value)
+    {
+
+    }
+
+    private async void OnRowRemoving(object e)
+    {
+
+        // https://docs.devexpress.com/Blazor/DevExpress.Blazor.DxDataGridCommandColumn
+        var arg = e;
+        // var ee = (BarBuddy.Server.Entities.Bar)e.GetType().GetProperty("Item").GetValue(e, null);
+        //_services.RemoveProduct(ee.Id);
+        // Datarecords.Remove(ee);
+        StateHasChanged();
+    }
+
+    public void OnRowUpdated(SavedRowItem<BarResult, Dictionary<string, object>> e)
+    {
+        //var arg = e;
+
+        //_services.UpdateProduct(e.Item.Id, e.Item);
+        //// _services.UpdateProduct(e.Item.Id, Articelname, ProductSet, IncentiveSet, CategoryName, MessePV, MesseSTA, Searchtags);
+        //StateHasChanged();
+    }
+
+
+    private async void OnRowInserted(SavedRowItem<BarResult, Dictionary<string, object>> e)
+    {
+        //BarBuddy.Server.Entities.Bar savedItem = e.Item;
+        //await CompanyService.AddBar(savedItem);
+        StateHasChanged();
+
+    }
+
+    private async void OnChildRowInserted(SavedRowItem<BarSpotResult, Dictionary<string, object>> e)
+    {
+        var savedItem = e.Item;
+        //await CompanySpotService.AddSpot(_selectedRecord, savedItem);
+        StateHasChanged();
+
+    }
+
+    public void OnChildRowUpdated(SavedRowItem<BarSpotResult, Dictionary<string, object>> e)
+    {
+        var savedItem = e.Item;
+    }
+
+    private async void OnChildRowRemoving(object e)
+    {
+
+        // https://docs.devexpress.com/Blazor/DevExpress.Blazor.DxDataGridCommandColumn
+        var arg = e;
+        var ee = (BarSpotResult)e.GetType().GetProperty("Item").GetValue(e, null);
+        // await CompanySpotService.DeleteSpot(ee);
+        // _selectedRecord.BarSpots.Remove(ee);
+        StateHasChanged();
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
+
+    bool OnCustomFilter(BarResult model)
+    {
+        // https://blazorise.com/docs/extensions/datagrid/#custom-filtering-1
+        // _products.AddRange(_services.GetAllProducts().Wait());
+        StateHasChanged();
+        return false;
+    }
+
+    private async Task<List<BarBuddy.Server.Entities.Bar>> LoadData()
+    {
+        Session.UserMessage("Laden", Model.UserMessageType.Info);
+        return await CompanyService.GetBars();
+    }
+
+
+    private async void LoadRecords()
+    {
+        if (_dataLoading)
+            return;
+
+        try
+        {
+            _dataLoading = true;
+            List<BarBuddy.Server.Entities.Bar> Datarecords = await LoadData();
+
+            Editrecords = new List<BarResult>();
+            foreach (BarBuddy.Server.Entities.Bar a in Datarecords)
+            {
+                BarResult ne = Mapper.Map<BarResult>(a);
+                /* Wird schon durch den obigen Mapper gemacht
+                foreach (BarSpot bs in a.BarSpots )
+                {
+                    BarSpotResult bsr = Mapper.Map<BarSpotResult>(bs);
+                    ne.BarSpots.Add(bsr);
+                }
+                */
+                Editrecords.Add(ne);
+            }
+            StateHasChanged();
+
+        }
+        finally
+        {
+            _dataLoading = false;
+            StateHasChanged();
+        }
+    }
+}
+
