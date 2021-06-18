@@ -1,4 +1,5 @@
 # DocProject is a documentation generator add-in
+.vs
 AdminBackend/bin/
 AdminBackend/obj/
 BarBlazorWebClient/BarBuddy.Web/bin
